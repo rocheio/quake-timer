@@ -15,6 +15,31 @@ const (
 	ModWin
 )
 
+type ProcManager struct {
+	user32  *syscall.DLL
+	regkey  *syscall.Proc
+	peekmsg *syscall.Proc
+}
+
+func NewProcManager() ProcManager {
+	m := ProcManager{}
+	m.user32 = syscall.MustLoadDLL("user32")
+	m.regkey = m.user32.MustFindProc("RegisterHotKey")
+	m.peekmsg = m.user32.MustFindProc("PeekMessageW")
+	return m
+}
+
+func (m ProcManager) RegisterHotkey(h *Hotkey) {
+	r1, _, err := m.regkey.Call(
+		0, uintptr(h.Id), uintptr(h.Modifiers), uintptr(h.KeyCode),
+	)
+	if r1 == 1 {
+		fmt.Println("Registered", h)
+	} else {
+		fmt.Println("Failed to register", h, ", error:", err)
+	}
+}
+
 type HotkeyMessage struct {
 	HWND   uintptr
 	UINT   uintptr
@@ -50,33 +75,23 @@ func (h *Hotkey) String() string {
 }
 
 func main() {
-	user32 := syscall.MustLoadDLL("user32")
-	defer user32.Release()
-
-	regkey := user32.MustFindProc("RegisterHotKey")
+	m := NewProcManager()
+	defer m.user32.Release()
 
 	hotkeys := map[int16]*Hotkey{
 		1: &Hotkey{1, ModAlt + ModCtrl, 'O'},  // ALT+CTRL+O
 		2: &Hotkey{2, ModAlt + ModShift, 'M'}, // ALT+SHIFT+M
 		3: &Hotkey{3, ModAlt + ModCtrl, 'X'},  // ALT+CTRL+X
-		4: &Hotkey{4, ModAlt, '1'},  // F1
+		4: &Hotkey{4, ModAlt, '1'},            // F1
 	}
 
 	for _, h := range hotkeys {
-    	r1, _, err := regkey.Call(
-    		0, uintptr(h.Id), uintptr(h.Modifiers), uintptr(h.KeyCode))
-    	if r1 == 1 {
-    		fmt.Println("Registered", h)
-    	} else {
-    		fmt.Println("Failed to register", h, ", error:", err)
-    	}
+		m.RegisterHotkey(h)
 	}
-
-	peekmsg := user32.MustFindProc("PeekMessageW")
 
 	for {
 		var msg = &HotkeyMessage{}
-		peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
+		m.peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
 
 		// Registered id is in the WPARAM field:
 		if id := msg.WPARAM; id != 0 {
@@ -85,9 +100,9 @@ func main() {
 				fmt.Println("CTRL+ALT+X pressed, goodbye...")
 				return
 			}
-            if id == 4 { // ALT+1 = Ding
-                fmt.Println("Play audio here...")
-            }
+			if id == 4 { // ALT+1 = Ding
+				fmt.Println("Play audio here...")
+			}
 		}
 
 		time.Sleep(time.Millisecond * 50)
