@@ -1,6 +1,6 @@
 # Quake Timer
 
-Quake cooldown timer app for the game Quake Champions.
+A Windows background application to manage cooldown timers for Quake Champions.
 
 Build and run the app on Windows:
 
