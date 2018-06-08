@@ -2,7 +2,7 @@
 
 Quake cooldown timer app for the game Quake Champions.
 
-Build and run the app:
+Build and run the app on Windows:
 
 ```sh
 go build ./cmd/quaketimer

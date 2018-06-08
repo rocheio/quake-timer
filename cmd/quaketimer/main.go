@@ -7,12 +7,14 @@ import (
 	"github.com/rocheio/quake-timer/pkg/hotkey"
 )
 
-func main() {
+func playDing() {
 	err := audio.PlayFile("./audio/one_bell.mp3")
 	if err != nil {
 		log.Fatal(err)
 	}
+}
 
+func main() {
 	m, err := hotkey.NewManager()
 	if err != nil {
 		log.Fatal(err)
@@ -20,10 +22,10 @@ func main() {
 	defer m.User32.Release()
 
 	keys := map[int16]*hotkey.Hotkey{
-		1: &hotkey.Hotkey{1, hotkey.ModAlt + hotkey.ModCtrl, 'O'},
-		2: &hotkey.Hotkey{2, hotkey.ModAlt + hotkey.ModShift, 'M'},
-		3: &hotkey.Hotkey{3, hotkey.ModAlt + hotkey.ModCtrl, 'X'},
-		4: &hotkey.Hotkey{4, hotkey.ModAlt, '1'},
+		1: &hotkey.Hotkey{1, hotkey.ModAlt + hotkey.ModCtrl, 'O', nil},
+		2: &hotkey.Hotkey{2, hotkey.ModAlt + hotkey.ModShift, 'M', nil},
+		3: &hotkey.Hotkey{3, hotkey.ModAlt + hotkey.ModCtrl, 'X', nil},
+		4: &hotkey.Hotkey{4, hotkey.ModAlt, '1', playDing},
 	}
 
 	for i, k := range keys {

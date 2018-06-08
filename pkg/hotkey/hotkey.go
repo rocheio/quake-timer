@@ -76,10 +76,12 @@ func (m Manager) SeekHotkeyLoop() error {
 		case 3:
 			log.Println("CTRL+ALT+X pressed, goodbye...")
 			return nil
-		case 4:
-			log.Println("ALT+1 - Play audio here...")
 		default:
-			log.Println("Hotkey pressed:", m.keys[id])
+			key := m.keys[id]
+			log.Println("Hotkey pressed:", key)
+			if key.Action != nil {
+				go key.Action()
+			}
 		}
 
 		time.Sleep(time.Millisecond * 50)
@@ -90,6 +92,7 @@ type Hotkey struct {
 	Id        int // Unique id
 	Modifiers int // Mask of modifiers
 	KeyCode   int // Key code, e.g. 'A'
+	Action    func()
 }
 
 func (h *Hotkey) String() string {
