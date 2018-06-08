@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/faiface/beep"
-	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
+	"github.com/faiface/beep/wav"
 )
 
 func PlayFile(path string) error {
@@ -14,7 +14,7 @@ func PlayFile(path string) error {
 	if err != nil {
 		return err
 	}
-	s, format, err := mp3.Decode(f)
+	s, format, err := wav.Decode(f)
 	if err != nil {
 		return err
 	}
