@@ -3,10 +3,16 @@ package main
 import (
 	"log"
 
+	"github.com/rocheio/quake-timer/pkg/audio"
 	"github.com/rocheio/quake-timer/pkg/hotkey"
 )
 
 func main() {
+	err := audio.PlayFile("./audio/one_bell.mp3")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	m, err := hotkey.NewManager()
 	if err != nil {
 		log.Fatal(err)
