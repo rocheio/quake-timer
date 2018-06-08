@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"syscall"
 	"time"
 	"unsafe"
@@ -15,38 +16,51 @@ const (
 	ModWin
 )
 
-type ProcManager struct {
+type HotkeyManager struct {
 	user32  *syscall.DLL
 	regkey  *syscall.Proc
 	peekmsg *syscall.Proc
+	keys    map[int16]*Hotkey
 }
 
-func NewProcManager() ProcManager {
-	m := ProcManager{}
-	m.user32 = syscall.MustLoadDLL("user32")
-	m.regkey = m.user32.MustFindProc("RegisterHotKey")
-	m.peekmsg = m.user32.MustFindProc("PeekMessageW")
-	return m
+func NewHotkeyManager() (*HotkeyManager, error) {
+	var err error
+	m := HotkeyManager{
+		keys: make(map[int16]*Hotkey),
+	}
+	m.user32, err = syscall.LoadDLL("user32")
+	if err != nil {
+		return nil, err
+	}
+	m.regkey, err = m.user32.FindProc("RegisterHotKey")
+	if err != nil {
+		return nil, err
+	}
+	m.peekmsg, err = m.user32.FindProc("PeekMessageW")
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
 
-func (m ProcManager) RegisterHotkey(h *Hotkey) {
+func (m HotkeyManager) RegisterHotkey(i int16, h *Hotkey) error {
 	r1, _, err := m.regkey.Call(
 		0, uintptr(h.Id), uintptr(h.Modifiers), uintptr(h.KeyCode),
 	)
+
 	if r1 == 1 {
-		fmt.Println("Registered", h)
-	} else {
-		fmt.Println("Failed to register", h, ", error:", err)
+		log.Printf("registered hotkey %s", h)
+		m.keys[i] = h
+		return nil
 	}
+
+	return fmt.Errorf("Failed to register %v, error: %v", h, err)
 }
 
-type HotkeyMessage struct {
-	HWND   uintptr
-	UINT   uintptr
-	WPARAM int16
-	LPARAM int64
-	DWORD  int32
-	POINT  struct{ X, Y int64 }
+func (m HotkeyManager) SeekHotkeyID() (int16, error) {
+	msg := &HotkeyMessage{}
+	m.peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
+	return msg.WPARAM, nil
 }
 
 type Hotkey struct {
@@ -55,8 +69,6 @@ type Hotkey struct {
 	KeyCode   int // Key code, e.g. 'A'
 }
 
-// String returns a human-friendly display name of the hotkey
-// such as "Hotkey[Id: 1, Alt+Ctrl+O]"
 func (h *Hotkey) String() string {
 	mod := &bytes.Buffer{}
 	if h.Modifiers&ModAlt != 0 {
@@ -74,35 +86,54 @@ func (h *Hotkey) String() string {
 	return fmt.Sprintf("Hotkey[Id: %d, %s%c]", h.Id, mod, h.KeyCode)
 }
 
+type HotkeyMessage struct {
+	HWND   uintptr
+	UINT   uintptr
+	WPARAM int16
+	LPARAM int64
+	DWORD  int32
+	POINT  struct{ X, Y int64 }
+}
+
 func main() {
-	m := NewProcManager()
+	m, err := NewHotkeyManager()
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer m.user32.Release()
 
-	hotkeys := map[int16]*Hotkey{
-		1: &Hotkey{1, ModAlt + ModCtrl, 'O'},  // ALT+CTRL+O
-		2: &Hotkey{2, ModAlt + ModShift, 'M'}, // ALT+SHIFT+M
-		3: &Hotkey{3, ModAlt + ModCtrl, 'X'},  // ALT+CTRL+X
-		4: &Hotkey{4, ModAlt, '1'},            // F1
+	keys := map[int16]*Hotkey{
+		1: &Hotkey{1, ModAlt + ModCtrl, 'O'},
+		2: &Hotkey{2, ModAlt + ModShift, 'M'},
+		3: &Hotkey{3, ModAlt + ModCtrl, 'X'},
+		4: &Hotkey{4, ModAlt, '1'},
 	}
 
-	for _, h := range hotkeys {
-		m.RegisterHotkey(h)
+	for i, k := range keys {
+		err := m.RegisterHotkey(i, k)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
+loop:
 	for {
-		var msg = &HotkeyMessage{}
-		m.peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
+		id, err := m.SeekHotkeyID()
+		if err != nil {
+			log.Fatal(err)
+			break
+		}
 
-		// Registered id is in the WPARAM field:
-		if id := msg.WPARAM; id != 0 {
-			fmt.Println("Hotkey pressed:", hotkeys[id])
-			if id == 3 { // CTRL+ALT+X = Exit
-				fmt.Println("CTRL+ALT+X pressed, goodbye...")
-				return
-			}
-			if id == 4 { // ALT+1 = Ding
-				fmt.Println("Play audio here...")
-			}
+		switch id {
+		case 0:
+			break
+		case 3:
+			log.Println("CTRL+ALT+X pressed, goodbye...")
+			break loop
+		case 4:
+			log.Println("ALT+1 - Play audio here...")
+		default:
+			log.Println("Hotkey pressed:", m.keys[id])
 		}
 
 		time.Sleep(time.Millisecond * 50)
