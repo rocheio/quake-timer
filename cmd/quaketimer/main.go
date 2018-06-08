@@ -7,13 +7,6 @@ import (
 	"github.com/rocheio/quake-timer/pkg/hotkey"
 )
 
-func playDing() {
-	err := audio.PlayFile("./audio/one_bell.mp3")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 func main() {
 	m, err := hotkey.NewManager()
 	if err != nil {
@@ -21,24 +14,32 @@ func main() {
 	}
 	defer m.User32.Release()
 
-	keys := map[int16]*hotkey.Hotkey{
-		1: &hotkey.Hotkey{1, hotkey.ModAlt + hotkey.ModCtrl, 'O', nil},
-		2: &hotkey.Hotkey{2, hotkey.ModAlt + hotkey.ModShift, 'M', nil},
-		3: &hotkey.Hotkey{3, hotkey.ModAlt + hotkey.ModCtrl, 'X', nil},
-		4: &hotkey.Hotkey{4, hotkey.ModAlt, '1', playDing},
+	// register 'exit' key as ALT + CTRL + X
+	exitKey := hotkey.Hotkey{1, hotkey.ModAlt + hotkey.ModCtrl, 'X', func() {
+		m.Exit()
+	}}
+	err = m.RegisterHotkey(1, &exitKey)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	for i, k := range keys {
-		err := m.RegisterHotkey(i, k)
+	// register 'mega health' key as ALT + 1
+	megaHealthKey := hotkey.Hotkey{2, hotkey.ModAlt, '1', func() {
+		err := audio.PlayFile("./audio/one_bell.mp3")
 		if err != nil {
 			log.Fatal(err)
 		}
+	}}
+	err = m.RegisterHotkey(2, &megaHealthKey)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	// loop until error or exit code, playing actions on hotkey
 	err = m.SeekHotkeyLoop()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("hotkey listener stopped")
+	log.Println("program completed")
 }

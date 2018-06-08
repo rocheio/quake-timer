@@ -21,6 +21,7 @@ type Manager struct {
 	regkey  *syscall.Proc
 	peekmsg *syscall.Proc
 	keys    map[int16]*Hotkey
+	exit    bool
 }
 
 func NewManager() (*Manager, error) {
@@ -43,7 +44,7 @@ func NewManager() (*Manager, error) {
 	return &m, nil
 }
 
-func (m Manager) RegisterHotkey(i int16, h *Hotkey) error {
+func (m *Manager) RegisterHotkey(i int16, h *Hotkey) error {
 	r1, _, err := m.regkey.Call(
 		0, uintptr(h.Id), uintptr(h.Modifiers), uintptr(h.KeyCode),
 	)
@@ -57,35 +58,40 @@ func (m Manager) RegisterHotkey(i int16, h *Hotkey) error {
 	return fmt.Errorf("Failed to register %v, error: %v", h, err)
 }
 
-func (m Manager) SeekHotkeyID() (int16, error) {
+func (m *Manager) SeekHotkeyID() (int16, error) {
 	msg := &Message{}
 	m.peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
 	return msg.WPARAM, nil
 }
 
-func (m Manager) SeekHotkeyLoop() error {
+func (m *Manager) SeekHotkeyLoop() error {
 	for {
+		if m.exit {
+			log.Println("received signal to exit")
+			return nil
+		}
+
 		id, err := m.SeekHotkeyID()
 		if err != nil {
 			return err
 		}
+		if id == 0 {
+			continue
+		}
 
-		switch id {
-		case 0:
-			break
-		case 3:
-			log.Println("CTRL+ALT+X pressed, goodbye...")
-			return nil
-		default:
-			key := m.keys[id]
-			log.Println("Hotkey pressed:", key)
-			if key.Action != nil {
-				go key.Action()
-			}
+		key := m.keys[id]
+		log.Println("Hotkey pressed:", key)
+
+		if key.Action != nil {
+			go key.Action()
 		}
 
 		time.Sleep(time.Millisecond * 50)
 	}
+}
+
+func (m *Manager) Exit() {
+	m.exit = true
 }
 
 type Hotkey struct {
