@@ -9,7 +9,7 @@ go build ./cmd/quaketimer
 ./quaketimer.exe
 ```
 
-Turn your volume up so you can hear the dings.
+Turn your volume up so you can hear the alerts.
 
 Press the registered hotkey, even when terminal is not focused.
 
