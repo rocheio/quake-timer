@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.1 - 2018-06-10
+## 0.2.1 - Unreleased
 - Add confirmation blip on timer set
 - Change alert times to 20 and 10 seconds instead of 30 and 10 seconds
 
