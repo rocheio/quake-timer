@@ -14,17 +14,6 @@ func DoAfter(d time.Duration, f func()) {
 	}
 }
 
-func FiveSecondAlert(f string) {
-	err := audio.PlayFile(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = audio.PlayFile("./audio/in-five-seconds.wav")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
 type Cooldown struct {
 	Name      string
 	Duration  time.Duration
@@ -33,11 +22,22 @@ type Cooldown struct {
 
 func (c Cooldown) Start(t time.Time) {
 	remaining := c.Duration - time.Now().Sub(t)
-	switch {
-	case remaining > 5*time.Second:
-		DoAfter(remaining-5*time.Second, func() {
-			log.Printf("%s in five seconds", c.Name)
-			FiveSecondAlert(c.AudioFile)
+	if remaining > 30*time.Second {
+		go DoAfter(remaining-30*time.Second, func() {
+			log.Printf("%s in thirty seconds", c.Name)
+			err := audio.PlayFiles(c.AudioFile, "./audio/in-thirty-seconds.wav")
+			if err != nil {
+				log.Fatal(err)
+			}
+		})
+	}
+	if remaining > 10*time.Second {
+		go DoAfter(remaining-10*time.Second, func() {
+			log.Printf("%s in ten seconds", c.Name)
+			err := audio.PlayFiles(c.AudioFile, "./audio/in-ten-seconds.wav")
+			if err != nil {
+				log.Fatal(err)
+			}
 		})
 	}
 }

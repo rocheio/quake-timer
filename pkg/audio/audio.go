@@ -9,6 +9,16 @@ import (
 	"github.com/faiface/beep/wav"
 )
 
+func PlayFiles(paths ...string) error {
+	for _, p := range paths {
+		err := PlayFile(p)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func PlayFile(path string) error {
 	f, err := os.Open(path)
 	if err != nil {

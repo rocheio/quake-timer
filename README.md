@@ -17,7 +17,8 @@ Press the registered hotkey, even when terminal is not focused.
 - Quad Damage: `Alt + 3` (120 seconds)
 - Protection: `Alt + 4` (120 seconds)
 
-You should hear the item's name 5 seconds before the cooldown for each item expires.
+The item's name will be announced 10 seconds before the timer expires.
+The longer cooldowns will also alert 30 seconds before expiration.
 
 To close the app, hit `Alt + Ctrl + X` or send a keyboard interrupt in the console (`Ctrl + C`).
 
