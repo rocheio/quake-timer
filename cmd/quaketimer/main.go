@@ -33,29 +33,29 @@ func main() {
 	}
 	defer m.User32.Release()
 
-	m.AddKey("exit", hotkey.ModAlt+hotkey.ModCtrl, 'X', func() {
+	m.AddKey("Exit", hotkey.ModAlt+hotkey.ModCtrl, 'X', func() {
 		m.Exit()
 	})
 
-	m.AddKey("mega-health", hotkey.ModAlt, '1', func() {
+	m.AddKey("Mega Health", hotkey.ModAlt, '1', func() {
 		DoAfter(time.Second*25, func() {
 			FiveSecondAlert("./audio/mega-health.wav")
 		})
 	})
 
-	m.AddKey("heavy-armor", hotkey.ModAlt, '2', func() {
+	m.AddKey("Heavy Armor", hotkey.ModAlt, '2', func() {
 		DoAfter(time.Second*25, func() {
 			FiveSecondAlert("./audio/heavy-armor.wav")
 		})
 	})
 
-	m.AddKey("quad-damage", hotkey.ModAlt, '3', func() {
+	m.AddKey("Quad Damage", hotkey.ModAlt, '3', func() {
 		DoAfter(time.Second*115, func() {
 			FiveSecondAlert("./audio/quad-damage.wav")
 		})
 	})
 
-	m.AddKey("protection", hotkey.ModAlt, '4', func() {
+	m.AddKey("Protection", hotkey.ModAlt, '4', func() {
 		DoAfter(time.Second*115, func() {
 			FiveSecondAlert("./audio/protection.wav")
 		})
@@ -66,7 +66,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = m.SeekHotkeyLoop()
+	log.Println("listening for key presses... press Alt+Ctrl+X to exit")
+	err = m.Listen()
 	if err != nil {
 		log.Fatal(err)
 	}

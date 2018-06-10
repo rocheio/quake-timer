@@ -20,8 +20,14 @@ type Manager struct {
 	User32  *syscall.DLL
 	regkey  *syscall.Proc
 	peekmsg *syscall.Proc
-	keys    map[int16]*Hotkey
-	exit    bool
+	// keys a map of hotkeys that are currently registered to the system
+	keys map[int16]*Hotkey
+	// exit is a flag that can be set from Goroutines to stop Listen
+	exit bool
+	// two attrs to track the first known Windows time registered
+	// and the conversion of that int32 to the Unix time
+	firstDur  int32
+	firstTime time.Time
 }
 
 func NewManager() (*Manager, error) {
@@ -83,34 +89,48 @@ func (m *Manager) RegisterHotkeys() error {
 	return nil
 }
 
-func (m *Manager) SeekHotkeyID() (int16, error) {
-	msg := &Message{}
+func (m *Manager) SeekKeyPress() (*KeyPress, error) {
+	msg := &WindowsMessage{}
 	m.peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
-	return msg.WPARAM, nil
+
+	if m.firstDur == 0 {
+		m.firstDur = msg.DWORD
+		m.firstTime = time.Now()
+	}
+
+	if msg.WPARAM == 0 {
+		return nil, nil
+	}
+
+	key, ok := m.keys[msg.WPARAM]
+	if !ok {
+		return nil, fmt.Errorf("key not registered to manager: %d", msg.WPARAM)
+	}
+
+	pressTime := m.firstTime.Add(msg.DurationSince(m.firstDur))
+	return &KeyPress{key, pressTime}, nil
 }
 
-func (m *Manager) SeekHotkeyLoop() error {
+func (m *Manager) Listen() error {
 	for {
 		select {
-		case <-time.After(time.Millisecond * 50):
+		case <-time.After(time.Millisecond * 100):
 			if m.exit {
 				log.Println("received signal to exit")
 				return nil
 			}
 
-			id, err := m.SeekHotkeyID()
+			p, err := m.SeekKeyPress()
 			if err != nil {
 				return err
 			}
-			if id == 0 {
+			if p == nil {
 				continue
 			}
 
-			key := m.keys[id]
-			log.Println("Hotkey pressed:", key)
-
-			if key.Action != nil {
-				go key.Action()
+			log.Printf("%s pressed at %s", p.key, p.time.Format("15:04:05"))
+			if p.key.Action != nil {
+				go p.key.Action()
 			}
 		}
 	}
@@ -145,11 +165,23 @@ func (h *Hotkey) String() string {
 	return fmt.Sprintf("Hotkey[%s, %s%c]", h.Name, mod, h.KeyCode)
 }
 
-type Message struct {
+// WindowsMessage is a message from a Windows thread's queue
+// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644958(v=vs.85).aspx
+type WindowsMessage struct {
 	HWND   uintptr
 	UINT   uintptr
 	WPARAM int16
 	LPARAM int64
 	DWORD  int32
 	POINT  struct{ X, Y int64 }
+}
+
+func (w WindowsMessage) DurationSince(firstDur int32) time.Duration {
+	return time.Millisecond * time.Duration(w.DWORD-firstDur)
+}
+
+// KeyPress is a validated press of a Hotkey at a given time
+type KeyPress struct {
+	key  *Hotkey
+	time time.Time
 }
