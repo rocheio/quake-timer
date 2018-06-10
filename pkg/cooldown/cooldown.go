@@ -22,10 +22,10 @@ type Cooldown struct {
 
 func (c Cooldown) Start(t time.Time) {
 	remaining := c.Duration - time.Now().Sub(t)
-	if remaining > 30*time.Second {
-		go DoAfter(remaining-30*time.Second, func() {
-			log.Printf("%s in thirty seconds", c.Name)
-			err := audio.PlayFiles(c.AudioFile, "./audio/in-thirty-seconds.wav")
+	if remaining > 20*time.Second {
+		go DoAfter(remaining-20*time.Second, func() {
+			log.Printf("%s in twenty seconds", c.Name)
+			err := audio.PlayFiles(c.AudioFile, "./audio/in-twenty-seconds.wav")
 			if err != nil {
 				log.Fatal(err)
 			}

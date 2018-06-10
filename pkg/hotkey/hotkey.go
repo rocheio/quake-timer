@@ -28,6 +28,8 @@ type Manager struct {
 	// and the conversion of that int32 to the Unix time
 	firstDur  int32
 	firstTime time.Time
+	// optional action to take each time a key press is registered
+	OnKeyPress func()
 }
 
 func NewManager() (*Manager, error) {
@@ -126,6 +128,10 @@ func (m *Manager) Listen() error {
 			}
 			if p == nil {
 				continue
+			}
+
+			if m.OnKeyPress != nil {
+				m.OnKeyPress()
 			}
 
 			log.Printf("%s pressed at %s", p.key, p.time.Format("15:04:05"))

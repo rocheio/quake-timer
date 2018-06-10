@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/rocheio/quake-timer/pkg/audio"
 	"github.com/rocheio/quake-timer/pkg/cooldown"
 	"github.com/rocheio/quake-timer/pkg/hotkey"
 )
@@ -14,6 +15,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer m.User32.Release()
+
+	m.OnKeyPress = func() {
+		audio.PlayFile("./audio/blip.wav")
+	}
 
 	m.AddKey("Exit", hotkey.ModAlt+hotkey.ModCtrl, 'X', func(t time.Time) {
 		m.Exit()
