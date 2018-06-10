@@ -44,22 +44,37 @@ func NewManager() (*Manager, error) {
 	return &m, nil
 }
 
+func (m *Manager) AddKey(name string, modifiers int, keycode int, action func()) {
+	i := len(m.keys) + 1
+	m.keys[int16(i)] = &Hotkey{
+		Id:        i,
+		Modifiers: modifiers,
+		KeyCode:   keycode,
+		Name:      name,
+		Action:    action,
+	}
+}
+
 func (m *Manager) RegisterHotkey(i int16, h *Hotkey) error {
 	r1, _, err := m.regkey.Call(
 		0, uintptr(h.Id), uintptr(h.Modifiers), uintptr(h.KeyCode),
 	)
 
 	if r1 == 1 {
-		log.Printf("registered hotkey %s", h)
+		log.Printf("registered %s", h)
 		m.keys[i] = h
+		return nil
+	}
+
+	if err.Error() == "Hot key is already registered." {
 		return nil
 	}
 
 	return fmt.Errorf("Failed to register %v, error: %v", h, err)
 }
 
-func (m *Manager) RegisterHotkeys(keys map[string]*Hotkey) error {
-	for _, key := range keys {
+func (m *Manager) RegisterHotkeys() error {
+	for _, key := range m.keys {
 		err := m.RegisterHotkey(int16(key.Id), key)
 		if err != nil {
 			return err
@@ -75,25 +90,28 @@ func (m *Manager) SeekHotkeyID() (int16, error) {
 }
 
 func (m *Manager) SeekHotkeyLoop() error {
-	for ; ; time.Sleep(time.Millisecond * 50) {
-		if m.exit {
-			log.Println("received signal to exit")
-			return nil
-		}
+	for {
+		select {
+		case <-time.After(time.Millisecond * 50):
+			if m.exit {
+				log.Println("received signal to exit")
+				return nil
+			}
 
-		id, err := m.SeekHotkeyID()
-		if err != nil {
-			return err
-		}
-		if id == 0 {
-			continue
-		}
+			id, err := m.SeekHotkeyID()
+			if err != nil {
+				return err
+			}
+			if id == 0 {
+				continue
+			}
 
-		key := m.keys[id]
-		log.Println("Hotkey pressed:", key)
+			key := m.keys[id]
+			log.Println("Hotkey pressed:", key)
 
-		if key.Action != nil {
-			go key.Action()
+			if key.Action != nil {
+				go key.Action()
+			}
 		}
 	}
 }
@@ -103,10 +121,11 @@ func (m *Manager) Exit() {
 }
 
 type Hotkey struct {
-	Id        int // Unique id
-	Modifiers int // Mask of modifiers
-	KeyCode   int // Key code, e.g. 'A'
-	Action    func()
+	Id        int    // Unique id
+	Modifiers int    // Mask of modifiers
+	KeyCode   int    // Key code, e.g. 'A'
+	Name      string // User-defined name for hotkey
+	Action    func() // Action to take on Hotkey press
 }
 
 func (h *Hotkey) String() string {
@@ -123,7 +142,7 @@ func (h *Hotkey) String() string {
 	if h.Modifiers&ModWin != 0 {
 		mod.WriteString("Win+")
 	}
-	return fmt.Sprintf("Hotkey[Id: %d, %s%c]", h.Id, mod, h.KeyCode)
+	return fmt.Sprintf("Hotkey[%s, %s%c]", h.Name, mod, h.KeyCode)
 }
 
 type Message struct {

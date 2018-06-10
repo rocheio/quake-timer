@@ -33,42 +33,39 @@ func main() {
 	}
 	defer m.User32.Release()
 
-	hotkeys := make(map[string]*hotkey.Hotkey)
-	// register 'exit' key as ALT + CTRL + X
-	hotkeys["exit"] = &hotkey.Hotkey{1, hotkey.ModAlt + hotkey.ModCtrl, 'X', func() {
+	m.AddKey("exit", hotkey.ModAlt+hotkey.ModCtrl, 'X', func() {
 		m.Exit()
-	}}
-	// register 'mega health' key as ALT + 1
-	hotkeys["mega-health"] = &hotkey.Hotkey{2, hotkey.ModAlt, '1', func() {
+	})
+
+	m.AddKey("mega-health", hotkey.ModAlt, '1', func() {
 		DoAfter(time.Second*25, func() {
 			FiveSecondAlert("./audio/mega-health.wav")
 		})
-	}}
-	// register 'heavy armor' key as ALT + 2
-	hotkeys["heavy-armor"] = &hotkey.Hotkey{3, hotkey.ModAlt, '2', func() {
+	})
+
+	m.AddKey("heavy-armor", hotkey.ModAlt, '2', func() {
 		DoAfter(time.Second*25, func() {
 			FiveSecondAlert("./audio/heavy-armor.wav")
 		})
-	}}
-	// register 'quad damage' key as ALT + 3
-	hotkeys["quad-damage"] = &hotkey.Hotkey{4, hotkey.ModAlt, '3', func() {
+	})
+
+	m.AddKey("quad-damage", hotkey.ModAlt, '3', func() {
 		DoAfter(time.Second*115, func() {
 			FiveSecondAlert("./audio/quad-damage.wav")
 		})
-	}}
-	// register 'protection' key as ALT + 4
-	hotkeys["protection"] = &hotkey.Hotkey{5, hotkey.ModAlt, '4', func() {
+	})
+
+	m.AddKey("protection", hotkey.ModAlt, '4', func() {
 		DoAfter(time.Second*115, func() {
 			FiveSecondAlert("./audio/protection.wav")
 		})
-	}}
+	})
 
-	err = m.RegisterHotkeys(hotkeys)
+	err = m.RegisterHotkeys()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// loop until error or exit code, playing actions on hotkey
 	err = m.SeekHotkeyLoop()
 	if err != nil {
 		log.Fatal(err)
