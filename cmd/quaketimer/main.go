@@ -26,6 +26,23 @@ func FiveSecondAlert(f string) {
 	}
 }
 
+type Cooldown struct {
+	name      string
+	duration  time.Duration
+	audioFile string
+}
+
+func (c Cooldown) Start(t time.Time) {
+	remaining := c.duration - time.Now().Sub(t)
+	switch {
+	case remaining > 5*time.Second:
+		DoAfter(remaining-5*time.Second, func() {
+			log.Printf("%s in five seconds", c.name)
+			FiveSecondAlert(c.audioFile)
+		})
+	}
+}
+
 func main() {
 	m, err := hotkey.NewManager()
 	if err != nil {
@@ -33,29 +50,26 @@ func main() {
 	}
 	defer m.User32.Release()
 
-	m.AddKey("Exit", hotkey.ModAlt+hotkey.ModCtrl, 'X', func() {
+	m.AddKey("Exit", hotkey.ModAlt+hotkey.ModCtrl, 'X', func(t time.Time) {
 		m.Exit()
 	})
 
-	m.AddKey("Mega Health", hotkey.ModAlt, '1', func() {
-		DoAfter(time.Second*25, func() {
-			FiveSecondAlert("./audio/mega-health.wav")
-		})
-	})
+	cd := Cooldown{"Mega Health", 30 * time.Second, "./audio/mega-health.wav"}
+	m.AddKey("Mega Health", hotkey.ModAlt, '1', cd.Start)
 
-	m.AddKey("Heavy Armor", hotkey.ModAlt, '2', func() {
+	m.AddKey("Heavy Armor", hotkey.ModAlt, '2', func(t time.Time) {
 		DoAfter(time.Second*25, func() {
 			FiveSecondAlert("./audio/heavy-armor.wav")
 		})
 	})
 
-	m.AddKey("Quad Damage", hotkey.ModAlt, '3', func() {
+	m.AddKey("Quad Damage", hotkey.ModAlt, '3', func(t time.Time) {
 		DoAfter(time.Second*115, func() {
 			FiveSecondAlert("./audio/quad-damage.wav")
 		})
 	})
 
-	m.AddKey("Protection", hotkey.ModAlt, '4', func() {
+	m.AddKey("Protection", hotkey.ModAlt, '4', func(t time.Time) {
 		DoAfter(time.Second*115, func() {
 			FiveSecondAlert("./audio/protection.wav")
 		})

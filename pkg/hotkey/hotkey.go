@@ -50,7 +50,7 @@ func NewManager() (*Manager, error) {
 	return &m, nil
 }
 
-func (m *Manager) AddKey(name string, modifiers int, keycode int, action func()) {
+func (m *Manager) AddKey(name string, modifiers int, keycode int, action func(d time.Time)) {
 	i := len(m.keys) + 1
 	m.keys[int16(i)] = &Hotkey{
 		Id:        i,
@@ -130,7 +130,7 @@ func (m *Manager) Listen() error {
 
 			log.Printf("%s pressed at %s", p.key, p.time.Format("15:04:05"))
 			if p.key.Action != nil {
-				go p.key.Action()
+				go p.key.Action(p.time)
 			}
 		}
 	}
@@ -145,7 +145,8 @@ type Hotkey struct {
 	Modifiers int    // Mask of modifiers
 	KeyCode   int    // Key code, e.g. 'A'
 	Name      string // User-defined name for hotkey
-	Action    func() // Action to take on Hotkey press
+	// Action does something based on the time of a keypress
+	Action func(t time.Time)
 }
 
 func (h *Hotkey) String() string {
