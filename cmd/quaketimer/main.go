@@ -4,44 +4,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/rocheio/quake-timer/pkg/audio"
+	"github.com/rocheio/quake-timer/pkg/cooldown"
 	"github.com/rocheio/quake-timer/pkg/hotkey"
 )
-
-func DoAfter(d time.Duration, f func()) {
-	select {
-	case <-time.After(d):
-		f()
-	}
-}
-
-func FiveSecondAlert(f string) {
-	err := audio.PlayFile(f)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = audio.PlayFile("./audio/in-five-seconds.wav")
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-type Cooldown struct {
-	name      string
-	duration  time.Duration
-	audioFile string
-}
-
-func (c Cooldown) Start(t time.Time) {
-	remaining := c.duration - time.Now().Sub(t)
-	switch {
-	case remaining > 5*time.Second:
-		DoAfter(remaining-5*time.Second, func() {
-			log.Printf("%s in five seconds", c.name)
-			FiveSecondAlert(c.audioFile)
-		})
-	}
-}
 
 func main() {
 	m, err := hotkey.NewManager()
@@ -54,26 +19,17 @@ func main() {
 		m.Exit()
 	})
 
-	cd := Cooldown{"Mega Health", 30 * time.Second, "./audio/mega-health.wav"}
+	cd := cooldown.Cooldown{"Mega Health", 30 * time.Second, "./audio/mega-health.wav"}
 	m.AddKey("Mega Health", hotkey.ModAlt, '1', cd.Start)
 
-	m.AddKey("Heavy Armor", hotkey.ModAlt, '2', func(t time.Time) {
-		DoAfter(time.Second*25, func() {
-			FiveSecondAlert("./audio/heavy-armor.wav")
-		})
-	})
+	cd = cooldown.Cooldown{"Heavy Armor", 30 * time.Second, "./audio/heavy-armor.wav"}
+	m.AddKey("Heavy Armor", hotkey.ModAlt, '2', cd.Start)
 
-	m.AddKey("Quad Damage", hotkey.ModAlt, '3', func(t time.Time) {
-		DoAfter(time.Second*115, func() {
-			FiveSecondAlert("./audio/quad-damage.wav")
-		})
-	})
+	cd = cooldown.Cooldown{"Quad Damage", 120 * time.Second, "./audio/quad-damage.wav"}
+	m.AddKey("Quad Damage", hotkey.ModAlt, '3', cd.Start)
 
-	m.AddKey("Protection", hotkey.ModAlt, '4', func(t time.Time) {
-		DoAfter(time.Second*115, func() {
-			FiveSecondAlert("./audio/protection.wav")
-		})
-	})
+	cd = cooldown.Cooldown{"Protection", 120 * time.Second, "./audio/protection.wav"}
+	m.AddKey("Protection", hotkey.ModAlt, '4', cd.Start)
 
 	err = m.RegisterHotkeys()
 	if err != nil {
