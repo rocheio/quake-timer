@@ -58,6 +58,16 @@ func (m *Manager) RegisterHotkey(i int16, h *Hotkey) error {
 	return fmt.Errorf("Failed to register %v, error: %v", h, err)
 }
 
+func (m *Manager) RegisterHotkeys(keys map[string]*Hotkey) error {
+	for _, key := range keys {
+		err := m.RegisterHotkey(int16(key.Id), key)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *Manager) SeekHotkeyID() (int16, error) {
 	msg := &Message{}
 	m.peekmsg.Call(uintptr(unsafe.Pointer(msg)), 0, 0, 0, 1)
@@ -65,7 +75,7 @@ func (m *Manager) SeekHotkeyID() (int16, error) {
 }
 
 func (m *Manager) SeekHotkeyLoop() error {
-	for {
+	for ; ; time.Sleep(time.Millisecond * 50) {
 		if m.exit {
 			log.Println("received signal to exit")
 			return nil
@@ -85,8 +95,6 @@ func (m *Manager) SeekHotkeyLoop() error {
 		if key.Action != nil {
 			go key.Action()
 		}
-
-		time.Sleep(time.Millisecond * 50)
 	}
 }
 
