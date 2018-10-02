@@ -2,6 +2,12 @@
 
 A Windows background application to manage cooldown timers for Quake Champions.
 
+## Disclaimer
+
+This application may be considered a cheat or against the spirit of the game. Use at your own risk. It was developed to explore how having this granular timing information available in Quake would affect enjoyment of the game.
+
+This application should not be used competitively, as it is ineffective compared to doing the mental calculations yourself and communicating with your team.
+
 ## Getting Started
 
 Download the latest `.zip` from [the Releases page](https://github.com/rocheio/quake-timer/releases).
